@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Muntje Gooien</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060612; --text: #f0f0ff; --muted: rgba(255,255,255,0.35);
+  --glass: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08);
+  --gold: #f59e0b; --gold2: #d97706;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body {
+  background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif;
+  display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+  height:100dvh; user-select:none; padding:20px 20px 28px;
+}
+.mesh { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.mesh::before {
+  content:''; position:absolute; width:80vw; height:80vw; border-radius:50%;
+  background:radial-gradient(circle,#f59e0b18,transparent 70%);
+  filter:blur(100px); top:-20%; left:-20%;
+  animation:m1 12s ease-in-out infinite alternate;
+}
+.mesh::after {
+  content:''; position:absolute; width:70vw; height:70vw; border-radius:50%;
+  background:radial-gradient(circle,#d9770618,transparent 70%);
+  filter:blur(100px); bottom:-20%; right:-20%;
+  animation:m2 9s ease-in-out infinite alternate;
+}
+@keyframes m1 { to { transform:translate(15%,10%) scale(1.1); } }
+@keyframes m2 { to { transform:translate(-12%,-8%) scale(1.15); } }
+.grid {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+
+/* Header */
+.header { position:relative; z-index:5; text-align:center; padding-top:52px; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.logo {
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(2rem,9vw,2.8rem); letter-spacing:0.12em;
+  background:linear-gradient(135deg,#fff 30%,#f59e0b 65%,#d97706 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 20px rgba(245,158,11,0.4)); cursor:default;
+}
+.tagline { font-size:0.65rem; font-weight:500; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); }
+
+/* Coin */
+.coin-scene { position:relative; z-index:5; display:flex; align-items:center; justify-content:center; flex:1; }
+.coin-wrap { perspective:900px; }
+.coin {
+  width:clamp(150px,44vw,200px); height:clamp(150px,44vw,200px);
+  transform-style:preserve-3d; position:relative; cursor:pointer;
+  transition:transform 1.6s cubic-bezier(0.2,0.8,0.35,1);
+}
+.coin:active { filter:brightness(1.15); }
+.face {
+  position:absolute; inset:0; border-radius:50%;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:6px;
+}
+.face-front {
+  background:conic-gradient(from 0deg,#f59e0b,#d97706,#fbbf24 50%,#f59e0b);
+  box-shadow:0 0 0 4px rgba(245,158,11,0.2),0 0 60px rgba(245,158,11,0.5),inset 0 2px 0 rgba(255,255,255,0.3);
+}
+.face-back {
+  background:conic-gradient(from 180deg,#d97706,#92400e,#b45309 50%,#d97706);
+  box-shadow:0 0 0 4px rgba(217,119,6,0.2),0 0 60px rgba(217,119,6,0.45),inset 0 2px 0 rgba(255,255,255,0.2);
+  transform:rotateY(180deg);
+}
+.face-icon { font-size:clamp(2.2rem,12vw,3rem); }
+.face-label { font-family:'Bebas Neue',sans-serif; font-size:clamp(1rem,5vw,1.3rem); letter-spacing:0.12em; color:rgba(0,0,0,0.65); text-shadow:0 1px 0 rgba(255,255,255,0.25); }
+.coin-ring { position:absolute; inset:-5px; border-radius:50%; border:3px solid rgba(255,255,255,0.12); pointer-events:none; }
+
+/* Bets */
+.bets { position:relative; z-index:5; display:flex; gap:12px; width:100%; max-width:360px; }
+.bet-btn {
+  flex:1; padding:14px 8px; border-radius:18px;
+  background:var(--glass); border:1.5px solid var(--border);
+  color:var(--muted); font-family:'Bebas Neue',sans-serif; font-size:1.15rem; letter-spacing:0.1em;
+  cursor:pointer; transition:all 0.2s cubic-bezier(0.34,1.4,0.64,1);
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+}
+.bet-btn .bi { font-size:1.5rem; }
+.bet-btn.active-kop  { background:rgba(245,158,11,0.14); border-color:var(--gold);  color:#fff; box-shadow:0 0 22px rgba(245,158,11,0.3); }
+.bet-btn.active-munt { background:rgba(217,119,6,0.14);  border-color:var(--gold2); color:#fff; box-shadow:0 0 22px rgba(217,119,6,0.3); }
+.bet-btn:active { transform:scale(0.96); }
+
+/* Flip button */
+.flip-btn {
+  position:relative; z-index:5; width:100%; max-width:360px;
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  color:#0a0800; border:none; border-radius:100px; padding:16px;
+  font-family:'DM Sans',sans-serif; font-weight:700; font-size:0.88rem; letter-spacing:0.1em; text-transform:uppercase;
+  cursor:pointer; box-shadow:0 8px 32px rgba(245,158,11,0.45),inset 0 1px 0 rgba(255,255,255,0.3);
+  transition:all 0.2s; opacity:0.5; pointer-events:none;
+}
+.flip-btn.ready { opacity:1; pointer-events:all; }
+.flip-btn:active { transform:scale(0.97); }
+
+/* Result */
+.result-badge {
+  position:fixed; bottom:110px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--glass); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1);
+  border-radius:100px; padding:14px 36px;
+  font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:0.14em;
+  z-index:30; opacity:0; transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1); white-space:nowrap;
+}
+.result-badge.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.result-badge.kop  { border-color:rgba(245,158,11,0.5); color:#fbbf24; box-shadow:0 8px 32px rgba(245,158,11,0.3); }
+.result-badge.munt { border-color:rgba(217,119,6,0.5);  color:#fb923c; box-shadow:0 8px 32px rgba(217,119,6,0.3); }
+
+/* Particles */
+.particle { position:fixed; border-radius:50%; pointer-events:none; z-index:40; animation:pFly var(--dur) ease-out forwards; }
+@keyframes pFly { 0%{transform:translate(0,0) scale(1);opacity:1;} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0;} }
+
+/* Settings overlay */
+.settings-overlay {
+  position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.6); backdrop-filter:blur(12px);
+  display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity 0.35s;
+}
+.settings-overlay.open { opacity:1; pointer-events:all; }
+.settings-panel {
+  width:100%; background:linear-gradient(180deg,#0e0e1f,#080814);
+  border-top:1px solid rgba(255,255,255,0.1); border-radius:28px 28px 0 0;
+  padding-bottom:48px; transform:translateY(100%); transition:transform 0.42s cubic-bezier(0.34,1.1,0.64,1);
+}
+.settings-overlay.open .settings-panel { transform:translateY(0); }
+.p-handle { width:36px; height:3px; background:rgba(255,255,255,0.15); border-radius:3px; margin:14px auto 0; }
+.p-header { padding:18px 24px 6px; display:flex; align-items:center; gap:10px; }
+.p-title { font-family:'Bebas Neue',sans-serif; font-size:1.55rem; letter-spacing:0.1em; background:linear-gradient(135deg,#fff,#f59e0b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.hack-pill { background:linear-gradient(135deg,#f59e0b,#ef4444); color:#fff; font-size:0.58rem; font-weight:700; padding:3px 9px; border-radius:50px; letter-spacing:0.12em; text-transform:uppercase; }
+.p-desc { font-size:0.78rem; color:var(--muted); line-height:1.65; padding:0 24px 20px; }
+.p-body { padding:0 16px; display:flex; flex-direction:column; gap:10px; }
+.toggle-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:18px; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.tci{flex:1;} .tct{font-weight:700;font-size:0.92rem;margin-bottom:3px;display:flex;align-items:center;gap:8px;} .tcd{font-size:0.72rem;color:var(--muted);}
+.toggle{position:relative;width:52px;height:30px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{position:absolute;inset:0;border-radius:30px;background:rgba(255,255,255,0.1);cursor:pointer;transition:background 0.3s;border:1px solid rgba(255,255,255,0.1);}
+.toggle input:checked + .toggle-track{background:var(--gold);border-color:var(--gold);}
+.toggle-track::after{content:'';position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;top:2px;left:2px;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+.toggle input:checked + .toggle-track::after{transform:translateX(22px);}
+.selector-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:18px 20px;opacity:0.35;transition:opacity 0.3s;pointer-events:none;}
+.selector-card.active{opacity:1;pointer-events:all;}
+.sel-label{font-size:0.7rem;color:var(--muted);font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;}
+.result-opts{display:flex;gap:8px;}
+.ropt{flex:1;padding:14px 8px;border-radius:12px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:1.1rem;cursor:pointer;transition:all 0.18s;text-align:center;}
+.ropt.sel{color:#fff;}
+.ropt[data-r="kop"].sel{background:rgba(245,158,11,0.2);border-color:var(--gold);box-shadow:0 0 14px rgba(245,158,11,0.4);}
+.ropt[data-r="munt"].sel{background:rgba(217,119,6,0.2);border-color:var(--gold2);box-shadow:0 0 14px rgba(217,119,6,0.4);}
+.close-btn{margin:18px 16px 0;width:calc(100% - 32px);display:block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#0a0800;border:none;border-radius:14px;padding:16px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.08em;cursor:pointer;transition:filter 0.2s,transform 0.15s;}
+.close-btn:active{filter:brightness(0.9);transform:scale(0.98);}
+</style>
+</head>
+<body>
+<div class="mesh"></div>
+<div class="grid"></div>
+
+<div class="header">
+  <div class="logo" id="logoBtn">MUNTJE GOOIEN</div>
+  <div class="tagline">Kies je kant &mdash; het lot beslist</div>
+</div>
+
+<div class="coin-scene">
+  <div class="coin-wrap">
+    <div class="coin" id="coin">
+      <div class="face face-front">
+        <div class="face-icon">👑</div>
+        <div class="face-label">KOP</div>
+      </div>
+      <div class="face face-back">
+        <div class="face-icon">🪙</div>
+        <div class="face-label">MUNT</div>
+      </div>
+      <div class="coin-ring"></div>
+    </div>
+  </div>
+</div>
+
+<div class="bets">
+  <button class="bet-btn" id="betKop" onclick="placeBet('kop')">
+    <span class="bi">👑</span>KOP
+  </button>
+  <button class="bet-btn" id="betMunt" onclick="placeBet('munt')">
+    <span class="bi">🪙</span>MUNT
+  </button>
+</div>
+
+<button class="flip-btn ready" id="flipBtn" onclick="doFlip()">🎲 Gooien!</button>
+<div class="result-badge" id="resultBadge"></div>
+
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-panel">
+    <div class="p-handle"></div>
+    <div class="p-header">
+      <div class="p-title">Instellingen</div>
+      <span class="hack-pill">⚡ Hack</span>
+    </div>
+    <p class="p-desc">Weet jij al van tevoren welke kant het op gaat? Zet de hack aan 😈</p>
+    <div class="p-body">
+      <div class="toggle-card">
+        <div class="tci">
+          <div class="tct"><span>🎯</span> Hack activeren</div>
+          <div class="tcd">Kies zelf de uitkomst</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="hackToggle"><div class="toggle-track"></div></label>
+      </div>
+      <div class="selector-card" id="selectorCard">
+        <div class="sel-label">Welke kant wint?</div>
+        <div class="result-opts">
+          <button class="ropt sel" data-r="kop" onclick="selectHack('kop')">👑 KOP</button>
+          <button class="ropt" data-r="munt" onclick="selectHack('munt')">🪙 MUNT</button>
+        </div>
+      </div>
+    </div>
+    <button class="close-btn" onclick="document.getElementById('settingsOverlay').classList.remove('open')">Klaar</button>
+  </div>
+</div>
+
+<script>
+let bet = null, flipping = false, hackEnabled = false, hackResult = 'kop', currentAngle = 0;
+
+const coin = document.getElementById('coin');
+const flipBtn = document.getElementById('flipBtn');
+const resultBadge = document.getElementById('resultBadge');
+
+// Long-press logo to open settings
+let pressTimer;
+['touchstart','mousedown'].forEach(ev => document.getElementById('logoBtn').addEventListener(ev, () => { pressTimer = setTimeout(openSettings, 700); }));
+['touchend','mouseup','mouseleave'].forEach(ev => document.getElementById('logoBtn').addEventListener(ev, () => clearTimeout(pressTimer)));
+
+function openSettings() { document.getElementById('settingsOverlay').classList.add('open'); }
+document.getElementById('settingsOverlay').addEventListener('click', e => { if (e.target === document.getElementById('settingsOverlay')) document.getElementById('settingsOverlay').classList.remove('open'); });
+
+document.getElementById('hackToggle').addEventListener('change', function() {
+  hackEnabled = this.checked;
+  document.getElementById('selectorCard').classList.toggle('active', hackEnabled);
+});
+function selectHack(r) {
+  hackResult = r;
+  document.querySelectorAll('.ropt').forEach(b => b.classList.toggle('sel', b.dataset.r === r));
+}
+
+function placeBet(side) {
+  bet = side;
+  document.getElementById('betKop').classList.toggle('active-kop', side === 'kop');
+  document.getElementById('betMunt').classList.toggle('active-munt', side === 'munt');
+  resultBadge.classList.remove('show');
+}
+
+function doFlip() {
+  if (flipping) return;
+  flipping = true;
+  resultBadge.classList.remove('show', 'kop', 'munt');
+
+  const result = hackEnabled ? hackResult : (Math.random() < 0.5 ? 'kop' : 'munt');
+  if (hackEnabled) {
+    hackEnabled = false;
+    document.getElementById('hackToggle').checked = false;
+    document.getElementById('selectorCard').classList.remove('active');
+  }
+  const spins = (4 + Math.floor(Math.random() * 4)) * 360;
+  const normalCurrent = ((currentAngle % 360) + 360) % 360;
+  const target = result === 'munt' ? 180 : 0;
+  const delta = ((target - normalCurrent) + 360) % 360;
+  currentAngle += spins + delta;
+
+  coin.style.transform = `rotateY(${currentAngle}deg)`;
+
+  setTimeout(() => {
+    flipping = false;
+    showResult(result);
+  }, 1700);
+}
+
+function showResult(result) {
+  const won = bet !== null && bet === result;
+  const lost = bet !== null && bet !== result;
+  const emoji = result === 'kop' ? '👑' : '🪙';
+  const label = result === 'kop' ? 'KOP' : 'MUNT';
+  const suffix = won ? ' — GOED GERADEN! 🎉' : lost ? ' — HELAAS' : '';
+
+  resultBadge.innerHTML = `${emoji} &nbsp;${label}${suffix}`;
+  resultBadge.className = 'result-badge show ' + result;
+
+  if (!lost) burst(window.innerWidth / 2, window.innerHeight * 0.45, result === 'kop' ? '#f59e0b' : '#d97706');
+
+  bet = null;
+  document.getElementById('betKop').classList.remove('active-kop');
+  document.getElementById('betMunt').classList.remove('active-munt');
+  flipBtn.textContent = '🎲 Opnieuw!';
+}
+
+function burst(x, y, color) {
+  for (let i = 0; i < 22; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 4 + Math.random() * 6;
+    p.style.cssText = `left:${x}px;top:${y}px;background:${color};width:${size}px;height:${size}px`;
+    const a = (i / 22) * Math.PI * 2, d = 60 + Math.random() * 130;
+    p.style.setProperty('--tx', Math.cos(a) * d + 'px');
+    p.style.setProperty('--ty', Math.sin(a) * d + 'px');
+    p.style.setProperty('--dur', (0.5 + Math.random() * 0.7) + 's');
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1300);
+  }
+}
+</script>
+</body>
+</html>

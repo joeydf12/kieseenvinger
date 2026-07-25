@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Snelste Vinger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#060612; --text:#f0f0ff; --muted:rgba(255,255,255,0.35);
+  --glass:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.08);
+  --blue:#3b82f6; --green:#22c55e; --red:#ef4444; --yellow:#facc15;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body {
+  background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif;
+  display:flex; flex-direction:column; align-items:center;
+  height:100dvh; user-select:none; transition:background 0.25s;
+}
+body.state-waiting { background:#0c1a06; }
+body.state-go      { background:#0a2202; }
+body.state-early   { background:#2a0606; }
+
+.grid {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+
+/* Glow orb that pulses with state */
+.state-orb {
+  position:fixed; width:70vw; height:70vw; border-radius:50%;
+  filter:blur(80px); opacity:0; pointer-events:none; z-index:0;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  transition:opacity 0.3s, background 0.3s;
+}
+body.state-waiting .state-orb { background:radial-gradient(circle,#facc1520,transparent 70%); opacity:0.6; animation:orbPulse 1s ease-in-out infinite alternate; }
+body.state-go      .state-orb { background:radial-gradient(circle,#22c55e40,transparent 70%); opacity:1; }
+body.state-early   .state-orb { background:radial-gradient(circle,#ef444440,transparent 70%); opacity:1; }
+@keyframes orbPulse { from{opacity:0.4;} to{opacity:0.8;} }
+
+
+/* Header */
+.header { position:relative; z-index:5; text-align:center; padding:60px 24px 0; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.logo {
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(2rem,9vw,2.8rem); letter-spacing:0.12em;
+  background:linear-gradient(135deg,#fff 30%,#60a5fa 65%,#3b82f6 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 18px rgba(59,130,246,0.4));
+}
+.tagline { font-size:0.65rem; font-weight:500; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); }
+
+/* Big tap zone */
+.tap-zone {
+  position:relative; z-index:5; flex:1; width:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:20px; cursor:pointer; touch-action:none;
+}
+
+/* State indicator */
+.state-dot {
+  width:16px; height:16px; border-radius:50%;
+  background:rgba(255,255,255,0.15); transition:all 0.3s;
+}
+body.state-idle    .state-dot { background:rgba(255,255,255,0.15); }
+body.state-waiting .state-dot { background:#facc15; box-shadow:0 0 16px rgba(250,204,21,0.6); animation:dotPulse 0.8s ease-in-out infinite alternate; }
+body.state-go      .state-dot { background:#22c55e; box-shadow:0 0 24px rgba(34,197,94,0.8); }
+body.state-early   .state-dot { background:#ef4444; box-shadow:0 0 24px rgba(239,68,68,0.8); }
+body.state-result  .state-dot { background:var(--blue); box-shadow:0 0 16px rgba(59,130,246,0.6); }
+@keyframes dotPulse { from{transform:scale(0.9);}to{transform:scale(1.1);} }
+
+/* Main message */
+.main-msg {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(3rem,18vw,6rem); letter-spacing:0.08em; line-height:1;
+  text-align:center; transition:all 0.3s;
+}
+body.state-idle    .main-msg { color:rgba(255,255,255,0.2); }
+body.state-waiting .main-msg { color:#facc15; filter:drop-shadow(0 0 20px rgba(250,204,21,0.4)); }
+body.state-go      .main-msg { color:#22c55e; filter:drop-shadow(0 0 30px rgba(34,197,94,0.7)); animation:msgPop 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+body.state-early   .main-msg { color:#ef4444; filter:drop-shadow(0 0 24px rgba(239,68,68,0.7)); animation:msgShake 0.4s ease-out; }
+body.state-result  .main-msg { color:var(--blue); filter:drop-shadow(0 0 20px rgba(59,130,246,0.5)); }
+@keyframes msgPop { 0%{transform:scale(0.7);}100%{transform:scale(1);} }
+@keyframes msgShake { 0%,100%{transform:translateX(0);}20%{transform:translateX(-12px);}40%{transform:translateX(10px);}60%{transform:translateX(-8px);}80%{transform:translateX(6px);} }
+
+.sub-msg {
+  font-size:0.72rem; font-weight:500; letter-spacing:0.2em; text-transform:uppercase;
+  color:var(--muted); text-align:center; transition:color 0.3s; max-width:280px; line-height:1.6;
+}
+body.state-go    .sub-msg { color:#4ade80; }
+body.state-early .sub-msg { color:#f87171; }
+
+/* Reaction time display */
+.reaction-time {
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(4rem,22vw,7rem); letter-spacing:0.05em; line-height:1;
+  color:var(--blue); filter:drop-shadow(0 0 24px rgba(59,130,246,0.5));
+  opacity:0; transition:opacity 0.3s; pointer-events:none;
+  position:absolute;
+}
+.reaction-time.show { opacity:1; }
+.reaction-unit { font-size:0.4em; letter-spacing:0.2em; color:rgba(59,130,246,0.6); }
+
+/* Bottom bar */
+.bottom-bar { position:relative; z-index:5; width:100%; max-width:400px; padding:0 20px 28px; display:flex; flex-direction:column; gap:12px; align-items:center; }
+
+/* Leaderboard */
+.leaderboard { width:100%; display:flex; flex-direction:column; gap:6px; }
+.lb-entry {
+  display:flex; align-items:center; justify-content:space-between;
+  background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px;
+  padding:10px 16px; animation:lbSlide 0.3s ease-out both;
+}
+@keyframes lbSlide { from{transform:translateY(8px);opacity:0;}to{transform:translateY(0);opacity:1;} }
+.lb-rank { font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:0.1em; color:var(--muted); width:24px; }
+.lb-rank.gold   { color:#facc15; }
+.lb-rank.silver { color:#94a3b8; }
+.lb-rank.bronze { color:#b45309; }
+.lb-time { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:0.08em; }
+.lb-time.best-score { color:#22c55e; }
+.lb-badge { font-size:0.65rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); padding:3px 9px; border-radius:50px; background:rgba(255,255,255,0.06); }
+.lb-badge.new-best { background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3); }
+
+/* Action buttons */
+.action-btns { display:flex; gap:10px; width:100%; }
+.start-btn {
+  flex:1; background:linear-gradient(135deg,#3b82f6,#2563eb);
+  color:#fff; border:none; border-radius:100px; padding:15px;
+  font-family:'DM Sans',sans-serif; font-weight:700; font-size:0.88rem; letter-spacing:0.1em; text-transform:uppercase;
+  cursor:pointer; box-shadow:0 8px 28px rgba(59,130,246,0.4),inset 0 1px 0 rgba(255,255,255,0.2);
+  transition:all 0.2s;
+}
+.start-btn:active { transform:scale(0.97); }
+.clear-btn {
+  padding:15px 18px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
+  border-radius:100px; color:var(--muted); font-weight:700; font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase;
+  cursor:pointer; transition:all 0.2s; white-space:nowrap;
+}
+.clear-btn:hover { color:var(--text); border-color:rgba(255,255,255,0.2); }
+.clear-btn:active { transform:scale(0.96); }
+
+/* Flash overlay */
+.go-flash { position:fixed; inset:0; z-index:200; pointer-events:none; animation:goFlash 0.5s ease-out forwards; }
+.go-flash.green { background:rgba(34,197,94,0.25); }
+.go-flash.red   { background:rgba(239,68,68,0.25); }
+@keyframes goFlash { 0%{opacity:1;}100%{opacity:0;} }
+</style>
+</head>
+<body class="state-idle">
+<div class="grid"></div>
+<div class="state-orb"></div>
+
+<div class="header">
+  <div class="logo">SNELSTE VINGER</div>
+  <div class="tagline">Tik zo snel mogelijk als het groen wordt</div>
+</div>
+
+<div class="tap-zone" id="tapZone">
+  <div class="state-dot"></div>
+  <div class="main-msg" id="mainMsg">KLAAR?</div>
+  <div class="reaction-time" id="reactionTime"></div>
+  <div class="sub-msg" id="subMsg">Druk Start en tik zodra het groen wordt</div>
+</div>
+
+<div class="bottom-bar">
+  <div class="leaderboard" id="leaderboard"></div>
+  <div class="action-btns">
+    <button class="start-btn" id="startBtn" onclick="startRound()">⚡ Start</button>
+    <button class="clear-btn" id="clearBtn" onclick="clearScores()">Wis scores</button>
+  </div>
+</div>
+
+<script>
+// States: idle → waiting → go → result / early
+let state = 'idle';
+let goTimer = null, goTime = null;
+let scores = []; // ms reaction times
+const MAX_SCORES = 5;
+
+const tapZone    = document.getElementById('tapZone');
+const mainMsg    = document.getElementById('mainMsg');
+const subMsg     = document.getElementById('subMsg');
+const reactionEl = document.getElementById('reactionTime');
+const startBtn   = document.getElementById('startBtn');
+
+tapZone.addEventListener('touchstart', onTap, { passive: false });
+tapZone.addEventListener('mousedown', onTap);
+
+function onTap(e) {
+  e.preventDefault();
+  if (state === 'waiting') {
+    tooEarly();
+  } else if (state === 'go') {
+    const reaction = Date.now() - goTime;
+    showResult(reaction);
+  }
+}
+
+function startRound() {
+  if (state === 'waiting' || state === 'go') return;
+  clearTimer();
+  setState('waiting');
+  mainMsg.textContent = 'WACHT...';
+  subMsg.textContent = 'Tik NIET voordat het groen wordt!';
+  reactionEl.classList.remove('show');
+
+  const delay = 1500 + Math.random() * 3500;
+  goTimer = setTimeout(showGo, delay);
+  startBtn.textContent = '⏳ Bezig...';
+  startBtn.style.opacity = '0.5';
+  startBtn.style.pointerEvents = 'none';
+}
+
+function showGo() {
+  setState('go');
+  goTime = Date.now();
+  mainMsg.textContent = 'TIKT!';
+  subMsg.textContent = 'Nu tikken!';
+  flash('green');
+}
+
+function tooEarly() {
+  clearTimer();
+  setState('early');
+  mainMsg.textContent = 'TE VROEG!';
+  subMsg.textContent = 'Wacht op het groene signaal';
+  flash('red');
+  resetStartBtn();
+  setTimeout(() => {
+    setState('idle');
+    mainMsg.textContent = 'KLAAR?';
+    subMsg.textContent = 'Druk Start en tik zodra het groen wordt';
+  }, 1800);
+}
+
+function showResult(ms) {
+  setState('result');
+  reactionEl.innerHTML = ms + '<span class="reaction-unit">ms</span>';
+  reactionEl.classList.add('show');
+  mainMsg.textContent = '';
+  subMsg.textContent = getRating(ms);
+  addScore(ms);
+  resetStartBtn();
+  startBtn.textContent = '⚡ Opnieuw';
+}
+
+function getRating(ms) {
+  if (ms < 180) return '🤯 Ongelofelijk snel!';
+  if (ms < 250) return '⚡ Bliksemsnelle reactie!';
+  if (ms < 320) return '💪 Heel goed!';
+  if (ms < 400) return '👍 Niet slecht!';
+  if (ms < 500) return '😅 Kan sneller!';
+  return '🐢 Slaap je?';
+}
+
+function addScore(ms) {
+  scores.push(ms);
+  scores.sort((a, b) => a - b);
+  if (scores.length > MAX_SCORES) scores = scores.slice(0, MAX_SCORES);
+  renderLeaderboard(ms);
+}
+
+function renderLeaderboard(lastMs) {
+  const lb = document.getElementById('leaderboard');
+  lb.innerHTML = '';
+  const ranks = ['🥇','🥈','🥉','4.','5.'];
+  const rankClass = ['gold','silver','bronze','',''];
+  scores.forEach((s, i) => {
+    const entry = document.createElement('div');
+    entry.className = 'lb-entry';
+    entry.style.animationDelay = (i * 0.05) + 's';
+    const isBest = i === 0;
+    const isNew = s === lastMs && scores.filter(x => x === lastMs).length === 1;
+    entry.innerHTML = `
+      <span class="lb-rank ${rankClass[i]}">${ranks[i]}</span>
+      <span class="lb-time ${isBest ? 'best-score' : ''}">${s} ms</span>
+      <span class="lb-badge ${isNew && isBest ? 'new-best' : ''}">${isNew ? (isBest ? '🏆 Beste!' : 'Nieuw') : ''}</span>
+    `;
+    lb.appendChild(entry);
+  });
+}
+
+function clearScores() {
+  scores = [];
+  document.getElementById('leaderboard').innerHTML = '';
+  setState('idle');
+  mainMsg.textContent = 'KLAAR?';
+  subMsg.textContent = 'Druk Start en tik zodra het groen wordt';
+  reactionEl.classList.remove('show');
+  resetStartBtn();
+}
+
+function setState(s) {
+  state = s;
+  document.body.className = 'state-' + s;
+}
+
+function clearTimer() {
+  if (goTimer) { clearTimeout(goTimer); goTimer = null; }
+}
+
+function resetStartBtn() {
+  startBtn.textContent = '⚡ Start';
+  startBtn.style.opacity = '1';
+  startBtn.style.pointerEvents = 'all';
+}
+
+function flash(type) {
+  const el = document.createElement('div');
+  el.className = 'go-flash ' + type;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 600);
+}
+</script>
+</body>
+</html>

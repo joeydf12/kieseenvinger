@@ -76,6 +76,7 @@ body {
   background-size: 44px 44px;
 }
 
+
 /* ── Header ── */
 .header {
   position: relative; z-index: 10;
@@ -395,6 +396,7 @@ body {
 <div class="mesh-orb3"></div>
 <div class="grid"></div>
 
+
 <div class="header">
   <div class="logo">PICK A <span id="secretBtn">F</span>INGER</div>
   <div class="tagline">Leg je vingers neer &mdash; het lot beslist</div>
@@ -568,6 +570,12 @@ function startPicking() {
 
   const wi = hackEnabled ? Math.min(hackTarget, ids.length - 1) : Math.floor(Math.random() * ids.length);
   const winner = touches[ids[wi]];
+
+  if (hackEnabled) {
+    hackEnabled = false;
+    hackToggle.checked = false;
+    selectorCard.classList.remove('active');
+  }
 
   // Flash
   const fl = document.createElement('div'); fl.className = 'flash';

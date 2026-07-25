@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Krokodil</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; background:#111; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  height: 100dvh; user-select: none; color: #d8f0b0;
+}
+
+
+.header {
+  text-align: center; padding: 16px 20px 6px;
+  flex-shrink: 0;
+}
+.title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.8rem, 8vw, 2.6rem);
+  letter-spacing: 0.14em;
+  background: linear-gradient(135deg, #a8e040, #7ec828, #4a8010);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 12px rgba(126,200,40,0.5));
+}
+.subtitle {
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(160,220,100,0.45); margin-top: 2px;
+}
+
+/* ── Scene ── */
+.scene {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: 0 20px; min-height: 0;
+}
+
+/* The whole mouth is one SVG */
+#mouthSvg {
+  width: 100%;
+  max-width: min(340px, 80vw);
+  height: auto;
+  filter: drop-shadow(0 16px 48px rgba(0,0,0,0.8));
+}
+
+/* ── Counter ── */
+.counter-wrap {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 0 14px; gap: 5px;
+}
+.counter-label {
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(160,220,100,0.45);
+}
+.counter-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.15);
+  transition: all 0.2s;
+}
+.dot.ok  { background: #7ec828; border-color: #7ec828; box-shadow: 0 0 5px #7ec828; }
+.dot.bad { background: #e53e1a; border-color: #e53e1a; box-shadow: 0 0 8px #e53e1a; }
+
+/* Tooth hit areas (transparent, on top of SVG) */
+.tooth-hit {
+  position: absolute;
+  cursor: pointer;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  transform: translate(-50%, -50%);
+}
+.tooth-hit:active { opacity: 0.6; }
+
+/* SVG tooth states — driven by class on the <g> */
+.tooth-group .tooth-fill     { transition: fill 0.15s, filter 0.15s; }
+.tooth-group.safe .tooth-fill  { fill: #78c840 !important; filter: drop-shadow(0 0 5px rgba(120,200,64,0.9)); }
+.tooth-group.bitten .tooth-fill { fill: #e53e1a !important; filter: drop-shadow(0 0 8px rgba(229,62,26,0.9)); }
+.tooth-group.pressed .tooth-fill { fill: #888 !important; filter: none; }
+.tooth-group.hovered .tooth-fill { filter: brightness(1.18) drop-shadow(0 0 8px rgba(255,255,240,0.6)) !important; }
+
+/* ── Overlays ── */
+.overlay {
+  position: fixed; inset: 0; z-index: 80;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; opacity: 0; pointer-events: none;
+  transition: opacity 0.4s;
+  background: rgba(0,0,0,0.78); backdrop-filter: blur(10px);
+}
+.overlay.show { opacity: 1; pointer-events: all; }
+.ov-emoji { font-size: 4.5rem; animation: ovPop 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+@keyframes ovPop { from{transform:scale(0) rotate(-20deg);}to{transform:scale(1);} }
+.ov-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2rem, 11vw, 3.2rem); letter-spacing: 0.1em; text-align: center; line-height: 1;
+}
+.ov-title.bite { color: #e53e1a; filter: drop-shadow(0 0 16px rgba(229,62,26,0.6)); }
+.ov-title.safe { color: #7ec828; filter: drop-shadow(0 0 16px rgba(126,200,40,0.6)); }
+.ov-sub { font-size: 0.82rem; color: rgba(160,220,100,0.55); text-align: center; max-width: 240px; line-height: 1.5; }
+.replay-btn {
+  background: linear-gradient(135deg, #7ec828, #4a8010);
+  color: #0a1a05; border: none; border-radius: 100px;
+  padding: 13px 38px;
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; box-shadow: 0 8px 24px rgba(126,200,40,0.4);
+  transition: transform 0.15s, filter 0.15s;
+}
+.replay-btn:active { transform: scale(0.96); }
+
+/* Bite FX */
+.danger-flash {
+  position: fixed; inset: 0; z-index: 70; pointer-events: none;
+  background: rgba(229,62,26,0.4);
+  animation: dflash 0.5s ease-out forwards;
+}
+@keyframes dflash { 0%{opacity:1;} 100%{opacity:0;} }
+@keyframes shake {
+  0%,100%{transform:translate(0,0);}
+  15%{transform:translate(-9px,4px);}
+  30%{transform:translate(8px,-5px);}
+  45%{transform:translate(-6px,5px);}
+  60%{transform:translate(7px,-3px);}
+  75%{transform:translate(-3px,3px);}
+}
+body.shake { animation: shake 0.45s ease-out; }
+
+/* Snap: upper jaw slams down */
+#upperJaw { transform-origin: 50% 0%; transition: none; }
+@keyframes jawSnap {
+  0%   { transform: translateY(0); }
+  25%  { transform: translateY(32%); }
+  50%  { transform: translateY(16%); }
+  70%  { transform: translateY(26%); }
+  85%  { transform: translateY(20%); }
+  100% { transform: translateY(23%); }
+}
+#mouthSvg.snapping #upperJaw { animation: jawSnap 0.55s cubic-bezier(0.2,0,0.4,1) forwards; }
+
+/* ── Settings ── */
+.settings-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(12px);
+  display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity 0.35s;
+}
+.settings-overlay.open { opacity: 1; pointer-events: all; }
+.settings-panel {
+  width: 100%; background: linear-gradient(180deg,#0d1e0a,#080e06);
+  border-top: 1px solid rgba(126,200,40,0.2); border-radius: 28px 28px 0 0;
+  padding-bottom: 48px; transform: translateY(100%);
+  transition: transform 0.42s cubic-bezier(0.34,1.1,0.64,1);
+  max-height: 80vh; overflow-y: auto;
+  -webkit-overflow-scrolling:touch; touch-action:pan-y;
+}
+.settings-overlay.open .settings-panel { transform: translateY(0); }
+.p-handle { width:36px;height:3px;background:rgba(126,200,40,0.2);border-radius:3px;margin:14px auto 0; }
+.p-header { padding:18px 24px 4px; display:flex; align-items:center; gap:10px; }
+.p-title { font-family:'Bebas Neue',sans-serif; font-size:1.55rem; letter-spacing:0.1em; color:#a8e040; }
+.hack-pill { background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:50px;letter-spacing:0.12em;text-transform:uppercase; }
+.p-desc { font-size:0.76rem;color:rgba(160,220,100,0.45);line-height:1.6;padding:0 24px 18px; }
+.p-body { padding:0 16px; display:flex; flex-direction:column; gap:10px; }
+.toggle-card { background:rgba(126,200,40,0.05);border:1px solid rgba(126,200,40,0.12);border-radius:18px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px; }
+.tci{flex:1;} .tct{font-weight:700;font-size:0.9rem;margin-bottom:2px;display:flex;align-items:center;gap:8px;} .tcd{font-size:0.7rem;color:rgba(160,220,100,0.45);}
+.toggle{position:relative;width:52px;height:30px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{position:absolute;inset:0;border-radius:30px;background:rgba(255,255,255,0.1);cursor:pointer;transition:background 0.3s;border:1px solid rgba(255,255,255,0.1);}
+.toggle input:checked + .toggle-track{background:#7ec828;border-color:#7ec828;}
+.toggle-track::after{content:'';position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;top:2px;left:2px;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+.toggle input:checked + .toggle-track::after{transform:translateX(22px);}
+.selector-card{background:rgba(126,200,40,0.05);border:1px solid rgba(126,200,40,0.12);border-radius:18px;padding:16px 18px;opacity:0.35;transition:opacity 0.3s;pointer-events:none;}
+.selector-card.active{opacity:1;pointer-events:all;}
+.sel-label{font-size:0.68rem;color:rgba(160,220,100,0.45);font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;}
+.tooth-opts{display:flex;gap:7px;flex-wrap:wrap;}
+.topt{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);color:rgba(160,220,100,0.45);font-family:'Bebas Neue',sans-serif;font-size:1.1rem;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:center;}
+.topt.sel{background:rgba(229,62,26,0.2);border-color:#e53e1a;color:#fff;box-shadow:0 0 12px rgba(229,62,26,0.4);}
+.close-btn{margin:16px 16px 0;width:calc(100% - 32px);display:block;background:linear-gradient(135deg,#7ec828,#4a8010);color:#0a1a05;border:none;border-radius:14px;padding:15px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.88rem;letter-spacing:0.08em;cursor:pointer;transition:filter 0.2s,transform 0.15s;}
+.close-btn:active{filter:brightness(0.9);transform:scale(0.98);}
+</style>
+</head>
+<body>
+
+
+<div class="header">
+  <div class="title">KR<span id="secretBtn" style="cursor:default">O</span>KODIL</div>
+  <div class="subtitle">Druk op een tandje — maar pas op!</div>
+</div>
+
+<div class="scene">
+  <!-- SVG mouth — portrait aspect ratio like reference image -->
+  <svg id="mouthSvg" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="skinOuter" cx="50%" cy="28%" r="70%">
+        <stop offset="0%"  stop-color="#4ea030"/>
+        <stop offset="50%" stop-color="#2e6818"/>
+        <stop offset="100%" stop-color="#162e08"/>
+      </radialGradient>
+      <radialGradient id="skinOuter2" cx="50%" cy="28%" r="70%">
+        <stop offset="0%"  stop-color="#5aaa35"/>
+        <stop offset="100%" stop-color="#1a3a0c"/>
+      </radialGradient>
+      <radialGradient id="throatGrad" cx="50%" cy="48%" r="56%">
+        <stop offset="0%"  stop-color="#1e0404"/>
+        <stop offset="55%" stop-color="#0e0202"/>
+        <stop offset="100%" stop-color="#040101"/>
+      </radialGradient>
+      <linearGradient id="gumTopGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#e03858"/>
+        <stop offset="100%" stop-color="#8c1f30"/>
+      </linearGradient>
+      <linearGradient id="gumBotGrad" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%"  stop-color="#e03858"/>
+        <stop offset="100%" stop-color="#8c1f30"/>
+      </linearGradient>
+      <linearGradient id="toothGrad" x1="0.2" y1="0" x2="0.8" y2="1">
+        <stop offset="0%"  stop-color="#f9f6ee"/>
+        <stop offset="65%" stop-color="#e6deca"/>
+        <stop offset="100%" stop-color="#d0c4a0"/>
+      </linearGradient>
+      <pattern id="scalePat" x="0" y="0" width="16" height="12" patternUnits="userSpaceOnUse">
+        <ellipse cx="8" cy="6" rx="6" ry="4" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1"/>
+      </pattern>
+      <filter id="toothShadow" x="-30%" y="-20%" width="160%" height="150%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.6"/>
+      </filter>
+      <filter id="outerGlow" x="-5%" y="-5%" width="110%" height="110%">
+        <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#3a8018" flood-opacity="0.5"/>
+      </filter>
+    </defs>
+
+    <!-- ── Outer green body ── -->
+    <rect x="2" y="2" width="296" height="396" rx="52" ry="52" fill="url(#skinOuter)" filter="url(#outerGlow)"/>
+    <rect x="2" y="2" width="296" height="396" rx="52" ry="52" fill="url(#scalePat)" opacity="0.42"/>
+    <!-- highlight ridge top -->
+    <path d="M 52 4 Q 150 2 248 4" fill="none" stroke="rgba(160,240,80,0.32)" stroke-width="5" stroke-linecap="round"/>
+    <rect x="2" y="2" width="296" height="396" rx="52" ry="52" fill="none" stroke="rgba(90,170,40,0.2)" stroke-width="3"/>
+
+    <!-- ── Dark throat ── -->
+    <ellipse cx="150" cy="207" rx="117" ry="149" fill="url(#throatGrad)"/>
+    <ellipse cx="150" cy="207" rx="117" ry="149" fill="none" stroke="rgba(0,0,0,0.75)" stroke-width="8"/>
+
+    <!-- ════════════════════════════════
+         UPPER JAW GROUP  (animated on snap)
+    ════════════════════════════════ -->
+    <g id="upperJaw">
+      <!-- invisible rect to give the group height so %-based translateY works -->
+      <rect x="0" y="48" width="300" height="292" fill="none" stroke="none"/>
+
+      <!-- upper gum arch -->
+      <path d="M 26 74 Q 150 46 274 74 L 274 132 Q 150 108 26 132 Z" fill="url(#gumTopGrad)"/>
+
+      <!-- ── UPPER TEETH  tg0–tg7 (large rounded rects) ── -->
+      <!-- arch: sides y≈130, center y≈110; tooth widths 24–28px -->
+
+      <g class="tooth-group" id="tg0" filter="url(#toothShadow)">
+        <rect class="tooth-fill" x="40" y="128" width="24" height="45" rx="11" ry="11" fill="url(#toothGrad)" transform="rotate(-3 52 128)"/>
+        <ellipse cx="50" cy="139" rx="4.5" ry="7.5" fill="rgba(255,255,255,0.38)" transform="rotate(-3 52 128)"/>
+      </g>
+      <g class="tooth-group" id="tg1" filter="url(#toothShadow)">
+        <rect class="tooth-fill" x="69" y="120" width="25" height="51" rx="11" ry="11" fill="url(#toothGrad)" transform="rotate(-1.5 81 120)"/>
+        <ellipse cx="79" cy="131" rx="5" ry="8.5" fill="rgba(255,255,255,0.38)" transform="rotate(-1.5 81 120)"/>
+      </g>
+      <g class="tooth-group" id="tg2" filter="url(#toothShadow)">
+        <rect class="tooth-fill" x="99" y="114" width="26" height="56" rx="12" ry="12" fill="url(#toothGrad)"/>
+        <ellipse cx="110" cy="126" rx="5" ry="9" fill="rgba(255,255,255,0.38)"/>
+      </g>
+      <g class="tooth-group" id="tg3" filter="url(#toothShadow)">
+        <rect class="tooth-fill" x="129" y="110" width="27" height="60" rx="12" ry="12" fill="url(#toothGrad)"/>
+        <ellipse cx="142" cy="122" rx="5.5" ry="9.5" fill="rgba(255,255,255,0.38)"/>
+      </g>
+      <g class="tooth-group" id="tg4" filter="url(#toothShadow)">
+        <rect class="tooth-fill" x="160" y="110" width="27" height="60" rx="12" ry="12" fill="url(#toothGrad)"/>
+        <ellipse cx="173" cy="122" rx="5.5" ry="9.5" fill="rgba(255,255,255,0.38)"/>
+      </g>
+      <g class="tooth-group" id="tg5" filter="url(#toothShadow)">
+        <rect class="tooth-fill" x="190" y="114" width="26" height="56" rx="12" ry="12" fill="url(#toothGrad)"/>
+        <ellipse cx="201" cy="126" rx="5" ry="9" fill="rgba(255,255,255,0.38)"/>
+      </g>
+      <g class="tooth-group" id="tg6" filter="url(#toothShadow)">
+        <rect class="tooth-fill" x="220" y="120" width="25" height="51" rx="11" ry="11" fill="url(#toothGrad)" transform="rotate(1.5 232 120)"/>
+        <ellipse cx="230" cy="131" rx="5" ry="8.5" fill="rgba(255,255,255,0.38)" transform="rotate(1.5 232 120)"/>
+      </g>
+      <g class="tooth-group" id="tg7" filter="url(#toothShadow)">
+        <rect class="tooth-fill" x="249" y="128" width="24" height="45" rx="11" ry="11" fill="url(#toothGrad)" transform="rotate(3 261 128)"/>
+        <ellipse cx="259" cy="139" rx="4.5" ry="7.5" fill="rgba(255,255,255,0.38)" transform="rotate(3 261 128)"/>
+      </g>
+
+      <!-- gum cover — hides tooth roots, blends into jaw -->
+      <path d="M 24 46 Q 150 20 276 46 L 276 82 Q 150 56 24 82 Z" fill="url(#skinOuter2)"/>
+      <path d="M 24 70 Q 150 44 276 70 L 276 120 Q 150 96 24 120 Z" fill="url(#gumTopGrad)" opacity="0.88"/>
+    </g>
+
+    <!-- ════════════════════════════════
+         LOWER GUM + TEETH  (fixed)
+    ════════════════════════════════ -->
+    <!-- lower gum arch — curves DOWN in center (bowl shape) -->
+    <path d="M 26 282 Q 150 300 274 282 L 274 352 Q 150 370 26 352 Z" fill="url(#gumBotGrad)"/>
+
+    <!-- ── LOWER TEETH  tg8–tg14 (pointing UP) ── -->
+    <!-- arch: sides y_bottom≈282, center y_bottom≈295; tips all around y≈235–242 -->
+
+    <g class="tooth-group" id="tg8" filter="url(#toothShadow)">
+      <rect class="tooth-fill" x="50" y="240" width="23" height="43" rx="10" ry="10" fill="url(#toothGrad)" transform="rotate(3 61 283)"/>
+      <ellipse cx="59" cy="250" rx="4.5" ry="7" fill="rgba(255,255,255,0.3)" transform="rotate(3 61 283)"/>
+    </g>
+    <g class="tooth-group" id="tg9" filter="url(#toothShadow)">
+      <rect class="tooth-fill" x="80" y="235" width="25" height="49" rx="11" ry="11" fill="url(#toothGrad)" transform="rotate(1.5 92 284)"/>
+      <ellipse cx="90" cy="246" rx="5" ry="8" fill="rgba(255,255,255,0.3)" transform="rotate(1.5 92 284)"/>
+    </g>
+    <g class="tooth-group" id="tg10" filter="url(#toothShadow)">
+      <rect class="tooth-fill" x="112" y="230" width="26" height="54" rx="11" ry="11" fill="url(#toothGrad)"/>
+      <ellipse cx="123" cy="241" rx="5" ry="8.5" fill="rgba(255,255,255,0.3)"/>
+    </g>
+    <g class="tooth-group" id="tg11" filter="url(#toothShadow)">
+      <rect class="tooth-fill" x="143" y="227" width="27" height="57" rx="12" ry="12" fill="url(#toothGrad)"/>
+      <ellipse cx="156" cy="239" rx="5.5" ry="9" fill="rgba(255,255,255,0.3)"/>
+    </g>
+    <g class="tooth-group" id="tg12" filter="url(#toothShadow)">
+      <rect class="tooth-fill" x="174" y="230" width="26" height="54" rx="11" ry="11" fill="url(#toothGrad)"/>
+      <ellipse cx="185" cy="241" rx="5" ry="8.5" fill="rgba(255,255,255,0.3)"/>
+    </g>
+    <g class="tooth-group" id="tg13" filter="url(#toothShadow)">
+      <rect class="tooth-fill" x="207" y="235" width="25" height="49" rx="11" ry="11" fill="url(#toothGrad)" transform="rotate(-1.5 219 284)"/>
+      <ellipse cx="217" cy="246" rx="5" ry="8" fill="rgba(255,255,255,0.3)" transform="rotate(-1.5 219 284)"/>
+    </g>
+    <g class="tooth-group" id="tg14" filter="url(#toothShadow)">
+      <rect class="tooth-fill" x="238" y="240" width="23" height="43" rx="10" ry="10" fill="url(#toothGrad)" transform="rotate(-3 249 283)"/>
+      <ellipse cx="247" cy="250" rx="4.5" ry="7" fill="rgba(255,255,255,0.3)" transform="rotate(-3 249 283)"/>
+    </g>
+
+    <!-- lower gum cover over tooth roots -->
+    <path d="M 24 352 Q 150 370 276 352 L 276 364 Q 150 382 24 364 Z" fill="url(#skinOuter2)"/>
+    <path d="M 24 278 Q 150 296 276 278 L 276 306 Q 150 322 24 306 Z" fill="url(#gumBotGrad)" opacity="0.88"/>
+
+    <!-- outer border -->
+    <rect x="2" y="2" width="296" height="396" rx="52" ry="52" fill="none" stroke="#0c2406" stroke-width="5"/>
+
+    <!-- ── HIT AREAS (transparent click targets) ── -->
+    <!-- upper -->
+    <rect id="hit0" x="34"  y="118" width="36" height="60" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit1" x="63"  y="110" width="38" height="66" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit2" x="94"  y="104" width="38" height="70" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit3" x="124" y="100" width="40" height="75" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit4" x="155" y="100" width="40" height="75" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit5" x="185" y="104" width="38" height="70" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit6" x="215" y="110" width="38" height="66" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit7" x="244" y="118" width="36" height="60" fill="transparent" style="cursor:pointer"/>
+    <!-- lower -->
+    <rect id="hit8"  x="44"  y="234" width="36" height="52" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit9"  x="75"  y="228" width="38" height="58" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit10" x="108" y="223" width="38" height="64" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit11" x="140" y="220" width="40" height="68" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit12" x="170" y="223" width="38" height="64" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit13" x="200" y="228" width="38" height="58" fill="transparent" style="cursor:pointer"/>
+    <rect id="hit14" x="232" y="234" width="36" height="52" fill="transparent" style="cursor:pointer"/>
+  </svg>
+</div>
+
+<div class="counter-wrap">
+  <div class="counter-label">Veilige tanden</div>
+  <div class="counter-dots" id="counterDots"></div>
+</div>
+
+<!-- Overlays -->
+<div class="overlay" id="biteOverlay">
+  <div class="ov-emoji">🐊</div>
+  <div class="ov-title bite">AU! GEBETEN!</div>
+  <div class="ov-sub">De krokodil heeft je! Wie durfde het laatste tandje?</div>
+  <button class="replay-btn" id="biteReplay">Opnieuw</button>
+</div>
+<div class="overlay" id="safeOverlay">
+  <div class="ov-emoji">🎉</div>
+  <div class="ov-title safe">ONTSNAPT!</div>
+  <div class="ov-sub">Alle veilige tanden ingedrukt. De krokodil spaart je… voor nu.</div>
+  <button class="replay-btn" id="safeReplay">Opnieuw</button>
+</div>
+
+<!-- Settings -->
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-panel">
+    <div class="p-handle"></div>
+    <div class="p-header">
+      <div class="p-title">Instellingen</div>
+      <span class="hack-pill">⚡ Hack</span>
+    </div>
+    <p class="p-desc">Weet jij welk tandje gevaarlijk is? Zet de hack aan 😈</p>
+    <div class="p-body">
+      <div class="toggle-card">
+        <div class="tci">
+          <div class="tct"><span>🎯</span> Hack activeren</div>
+          <div class="tcd">Kies zelf het gevaarlijke tandje</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="hackToggle">
+          <div class="toggle-track"></div>
+        </label>
+      </div>
+      <div class="selector-card" id="selectorCard">
+        <div class="sel-label">Welk tandje bijt?</div>
+        <div class="tooth-opts" id="toothOpts"></div>
+      </div>
+    </div>
+    <button class="close-btn" id="closePanelBtn">Klaar</button>
+  </div>
+</div>
+
+<script>
+const TOTAL = 15; // 8 top + 7 bottom
+let hackEnabled = false, hackTarget = 0;
+let dangerIdx = Math.floor(Math.random() * TOTAL);
+let pressedSet = new Set(), gameOver = false;
+
+// Build hack tooth options
+const toothOptsEl = document.getElementById('toothOpts');
+for (let i = 0; i < TOTAL; i++) {
+  const b = document.createElement('button');
+  b.className = 'topt' + (i === 0 ? ' sel' : '');
+  b.textContent = i + 1;
+  b.addEventListener('click', () => {
+    hackTarget = i;
+    if (hackEnabled) dangerIdx = i;
+    toothOptsEl.querySelectorAll('.topt').forEach((el,j) => el.classList.toggle('sel', j === i));
+  });
+  toothOptsEl.appendChild(b);
+}
+
+// Settings
+const settingsOverlay = document.getElementById('settingsOverlay');
+document.getElementById('secretBtn').addEventListener('click', () => settingsOverlay.classList.add('open'));
+document.getElementById('closePanelBtn').addEventListener('click', () => settingsOverlay.classList.remove('open'));
+settingsOverlay.addEventListener('click', e => { if(e.target===settingsOverlay) settingsOverlay.classList.remove('open'); });
+document.getElementById('hackToggle').addEventListener('change', function() {
+  hackEnabled = this.checked;
+  document.getElementById('selectorCard').classList.toggle('active', hackEnabled);
+  dangerIdx = hackEnabled ? hackTarget : Math.floor(Math.random() * TOTAL);
+});
+
+// Build dots
+function buildDots() {
+  const el = document.getElementById('counterDots');
+  el.innerHTML = '';
+  for (let i = 0; i < TOTAL - 1; i++) {
+    const d = document.createElement('div'); d.className = 'dot'; d.id = `dot${i}`;
+    el.appendChild(d);
+  }
+}
+
+// Wire hit areas to teeth
+function wireTeeth() {
+  for (let i = 0; i < TOTAL; i++) {
+    const hit = document.getElementById(`hit${i}`);
+    if (hit) hit.addEventListener('click', () => pressTooth(i));
+  }
+}
+
+function pressTooth(i) {
+  if (gameOver || pressedSet.has(i)) return;
+  pressedSet.add(i);
+  const tg = document.getElementById(`tg${i}`);
+
+  if (i === dangerIdx) {
+    if (tg) tg.classList.add('bitten');
+    markDot(pressedSet.size - 1, 'bad');
+    triggerBite();
+    disableHackAfterRound();
+  } else {
+    if (tg) tg.classList.add('safe');
+    markDot(pressedSet.size - 1, 'ok');
+    if (pressedSet.size === TOTAL - 1) {
+      gameOver = true;
+      setTimeout(() => document.getElementById('safeOverlay').classList.add('show'), 400);
+      disableHackAfterRound();
+    }
+  }
+}
+
+function disableHackAfterRound() {
+  if (!hackEnabled) return;
+  hackEnabled = false;
+  document.getElementById('hackToggle').checked = false;
+  document.getElementById('selectorCard').classList.remove('active');
+}
+
+function markDot(idx, cls) {
+  const d = document.getElementById(`dot${idx}`);
+  if (d) d.classList.add(cls);
+}
+
+function triggerBite() {
+  gameOver = true;
+  document.body.classList.add('shake');
+  setTimeout(() => document.body.classList.remove('shake'), 500);
+  const fl = document.createElement('div'); fl.className = 'danger-flash';
+  document.body.appendChild(fl); setTimeout(() => fl.remove(), 600);
+  document.getElementById('mouthSvg').classList.add('snapping');
+  setTimeout(() => document.getElementById('biteOverlay').classList.add('show'), 380);
+}
+
+function resetGame() {
+  gameOver = false; pressedSet.clear();
+  dangerIdx = hackEnabled ? hackTarget : Math.floor(Math.random() * TOTAL);
+  document.getElementById('biteOverlay').classList.remove('show');
+  document.getElementById('safeOverlay').classList.remove('show');
+  document.getElementById('mouthSvg').classList.remove('snapping');
+  // Reset tooth colors
+  for (let i = 0; i < TOTAL; i++) {
+    const tg = document.getElementById(`tg${i}`);
+    if (tg) { tg.classList.remove('safe','bitten','pressed'); }
+  }
+  buildDots();
+}
+
+document.getElementById('biteReplay').addEventListener('click', resetGame);
+document.getElementById('safeReplay').addEventListener('click', resetGame);
+
+buildDots();
+wireTeeth();
+
+// Hover highlight on teeth
+for (let i = 0; i < TOTAL; i++) {
+  const hit = document.getElementById(`hit${i}`);
+  const tg  = document.getElementById(`tg${i}`);
+  if (!hit || !tg) continue;
+  hit.addEventListener('mouseover', () => { if (!gameOver && !pressedSet.has(i)) tg.classList.add('hovered'); });
+  hit.addEventListener('mouseout',  () => tg.classList.remove('hovered'));
+}
+</script>
+</body>
+</html>

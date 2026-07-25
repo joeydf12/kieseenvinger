@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Draden Doorknippen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#060612; --text:#f0f0ff; --muted:rgba(255,255,255,0.35);
+  --glass:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.08);
+  --danger:#ef4444; --safe:#22c55e;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body {
+  background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif;
+  display:flex; flex-direction:column; align-items:center;
+  height:100dvh; user-select:none;
+}
+.mesh { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.mesh::before {
+  content:''; position:absolute; width:80vw; height:80vw; border-radius:50%;
+  background:radial-gradient(circle,#ef444418,transparent 70%);
+  filter:blur(100px); top:-20%; left:-20%;
+  animation:m1 12s ease-in-out infinite alternate;
+}
+.mesh::after {
+  content:''; position:absolute; width:70vw; height:70vw; border-radius:50%;
+  background:radial-gradient(circle,#f9731618,transparent 70%);
+  filter:blur(100px); bottom:-20%; right:-20%;
+  animation:m2 9s ease-in-out infinite alternate;
+}
+@keyframes m1 { to { transform:translate(15%,10%) scale(1.1); } }
+@keyframes m2 { to { transform:translate(-12%,-8%) scale(1.15); } }
+.grid {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+
+/* Header */
+.header { position:relative; z-index:5; text-align:center; padding:56px 24px 0; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.logo {
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(1.8rem,8vw,2.6rem); letter-spacing:0.12em;
+  background:linear-gradient(135deg,#fff 30%,#f97316 65%,#ef4444 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 18px rgba(239,68,68,0.4)); cursor:default;
+}
+.tagline { font-size:0.65rem; font-weight:500; letter-spacing:0.22em; text-transform:uppercase; color:var(--muted); }
+
+/* Timer */
+.timer-row { position:relative; z-index:5; display:flex; align-items:center; gap:10px; margin-top:18px; }
+.timer-label { font-size:0.6rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
+.timer-display {
+  font-family:'Bebas Neue',sans-serif; font-size:2.2rem; letter-spacing:0.08em;
+  color:#ef4444; filter:drop-shadow(0 0 12px rgba(239,68,68,0.6));
+  transition:color 0.3s;
+}
+.timer-display.urgent { color:#fff; animation:timerPulse 0.5s ease-in-out infinite alternate; }
+@keyframes timerPulse { from{filter:drop-shadow(0 0 8px rgba(239,68,68,0.6));} to{filter:drop-shadow(0 0 24px rgba(239,68,68,1));} }
+
+/* Bomb */
+.bomb-area { position:relative; z-index:5; display:flex; align-items:center; justify-content:center; margin-top:10px; }
+.bomb {
+  width:clamp(80px,22vw,110px); height:clamp(80px,22vw,110px); border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#333,#111);
+  border:3px solid rgba(255,255,255,0.08);
+  box-shadow:0 0 40px rgba(239,68,68,0.2),inset 0 2px 0 rgba(255,255,255,0.1);
+  display:flex; align-items:center; justify-content:center;
+  font-size:clamp(2.5rem,8vw,3.5rem);
+  position:relative;
+}
+.bomb::before {
+  content:''; position:absolute; top:-18px; right:20px;
+  width:14px; height:18px;
+  background:linear-gradient(180deg,#888,#555);
+  border-radius:3px 3px 0 0;
+  transform:rotate(15deg);
+}
+.bomb-spark {
+  position:absolute; top:-30px; right:16px;
+  font-size:1.4rem;
+  animation:sparkFlicker 0.4s ease-in-out infinite alternate;
+}
+@keyframes sparkFlicker { from{opacity:0.6;transform:scale(0.9) rotate(-5deg);} to{opacity:1;transform:scale(1.1) rotate(5deg);} }
+
+/* Wires */
+.wires-section { position:relative; z-index:5; width:100%; max-width:400px; padding:0 20px; margin-top:24px; display:flex; flex-direction:column; gap:12px; }
+.wire-btn {
+  position:relative; overflow:hidden; display:flex; align-items:center; gap:14px;
+  background:rgba(255,255,255,0.03); border:1.5px solid;
+  border-radius:16px; padding:16px 20px;
+  cursor:pointer; transition:all 0.2s cubic-bezier(0.34,1.3,0.64,1);
+}
+.wire-btn:active { transform:scale(0.97); }
+.wire-line {
+  flex:1; height:6px; border-radius:3px;
+  position:relative; overflow:hidden;
+}
+.wire-line::after { content:''; position:absolute; inset:0; background:rgba(255,255,255,0.1); border-radius:3px; }
+.wire-label { font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:0.1em; min-width:48px; text-align:right; }
+.wire-scissor { font-size:1.3rem; flex-shrink:0; opacity:0.5; transition:opacity 0.2s; }
+.wire-btn:hover .wire-scissor { opacity:1; }
+
+/* Cut state */
+.wire-btn.cut { pointer-events:none; opacity:0.45; }
+.wire-btn.cut .wire-line::before {
+  content:''; position:absolute; top:50%; left:0; right:0; height:2px;
+  background:rgba(255,255,255,0.25); transform:scaleX(1) translateY(-50%);
+  animation:cutSlice 0.3s ease-out forwards;
+}
+@keyframes cutSlice { from{transform:scaleX(0) translateY(-50%);} to{transform:scaleX(1) translateY(-50%);} }
+.wire-cut-mark {
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  font-size:1.2rem; opacity:0; animation:markPop 0.3s 0.1s ease-out forwards;
+}
+@keyframes markPop { from{transform:translate(-50%,-50%) scale(0);opacity:0;} to{transform:translate(-50%,-50%) scale(1);opacity:1;} }
+
+/* Instruction */
+.instruction { position:relative; z-index:5; margin-top:16px; font-size:0.7rem; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); text-align:center; }
+
+/* Overlays */
+.overlay {
+  position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:18px; opacity:0; pointer-events:none; transition:opacity 0.4s;
+  background:rgba(0,0,0,0.82); backdrop-filter:blur(12px);
+}
+.overlay.show { opacity:1; pointer-events:all; }
+.ov-emoji { font-size:5rem; animation:ovPop 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+@keyframes ovPop { from{transform:scale(0) rotate(-20deg);}to{transform:scale(1);} }
+.ov-title {
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(2.2rem,12vw,3.4rem); letter-spacing:0.1em; text-align:center; line-height:1.1;
+}
+.ov-title.boom { color:#ef4444; filter:drop-shadow(0 0 18px rgba(239,68,68,0.7)); }
+.ov-title.safe-t { color:#22c55e; filter:drop-shadow(0 0 18px rgba(34,197,94,0.7)); }
+.ov-sub { font-size:0.82rem; color:rgba(255,255,255,0.5); text-align:center; max-width:260px; line-height:1.55; }
+.replay-btn {
+  background:linear-gradient(135deg,#ef4444,#dc2626);
+  color:#fff; border:none; border-radius:100px; padding:14px 42px;
+  font-family:'DM Sans',sans-serif; font-weight:700; font-size:0.85rem; letter-spacing:0.1em; text-transform:uppercase;
+  cursor:pointer; box-shadow:0 8px 24px rgba(239,68,68,0.4); transition:transform 0.15s;
+}
+.replay-btn.green { background:linear-gradient(135deg,#22c55e,#16a34a); box-shadow:0 8px 24px rgba(34,197,94,0.4); }
+.replay-btn:active { transform:scale(0.96); }
+
+/* Explosion FX */
+.explosion-flash {
+  position:fixed; inset:0; z-index:70; background:rgba(239,68,68,0.5);
+  pointer-events:none; animation:eFlash 0.5s ease-out forwards;
+}
+@keyframes eFlash { 0%{opacity:1;} 100%{opacity:0;} }
+@keyframes shake {
+  0%,100%{transform:translate(0,0);}
+  15%{transform:translate(-10px,5px);}
+  30%{transform:translate(9px,-6px);}
+  45%{transform:translate(-7px,6px);}
+  60%{transform:translate(8px,-4px);}
+  75%{transform:translate(-4px,3px);}
+}
+body.shake { animation:shake 0.45s ease-out; }
+
+/* Settings */
+.settings-overlay {
+  position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.6); backdrop-filter:blur(12px);
+  display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity 0.35s;
+}
+.settings-overlay.open { opacity:1; pointer-events:all; }
+.settings-panel {
+  width:100%; background:linear-gradient(180deg,#0e0e1f,#080814);
+  border-top:1px solid rgba(255,255,255,0.1); border-radius:28px 28px 0 0;
+  padding-bottom:48px; transform:translateY(100%); transition:transform 0.42s cubic-bezier(0.34,1.1,0.64,1);
+  max-height:80vh; overflow-y:auto;
+}
+.settings-overlay.open .settings-panel { transform:translateY(0); }
+.p-handle { width:36px;height:3px;background:rgba(255,255,255,0.15);border-radius:3px;margin:14px auto 0; }
+.p-header { padding:18px 24px 6px; display:flex; align-items:center; gap:10px; }
+.p-title { font-family:'Bebas Neue',sans-serif;font-size:1.55rem;letter-spacing:0.1em;background:linear-gradient(135deg,#fff,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+.hack-pill { background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:50px;letter-spacing:0.12em;text-transform:uppercase; }
+.p-desc { font-size:0.78rem;color:var(--muted);line-height:1.65;padding:0 24px 20px; }
+.p-body { padding:0 16px; display:flex; flex-direction:column; gap:10px; }
+.toggle-card { background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px; }
+.tci{flex:1;}.tct{font-weight:700;font-size:0.92rem;margin-bottom:3px;display:flex;align-items:center;gap:8px;}.tcd{font-size:0.72rem;color:var(--muted);}
+.toggle{position:relative;width:52px;height:30px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{position:absolute;inset:0;border-radius:30px;background:rgba(255,255,255,0.1);cursor:pointer;transition:background 0.3s;border:1px solid rgba(255,255,255,0.1);}
+.toggle input:checked + .toggle-track{background:#ef4444;border-color:#ef4444;}
+.toggle-track::after{content:'';position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;top:2px;left:2px;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+.toggle input:checked + .toggle-track::after{transform:translateX(22px);}
+.selector-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:18px 20px;opacity:0.35;transition:opacity 0.3s;pointer-events:none;}
+.selector-card.active{opacity:1;pointer-events:all;}
+.sel-label{font-size:0.7rem;color:var(--muted);font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;}
+.wire-opts { display:flex; gap:7px; flex-wrap:wrap; }
+.wopt{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.04);border:2px solid rgba(255,255,255,0.12);font-family:'Bebas Neue',sans-serif;font-size:0.95rem;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;justify-content:center;color:var(--muted);}
+.wopt.sel{border-color:#ef4444;background:rgba(239,68,68,0.2);color:#fff;box-shadow:0 0 12px rgba(239,68,68,0.4);}
+.close-btn{margin:18px 16px 0;width:calc(100% - 32px);display:block;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;border-radius:14px;padding:16px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.08em;cursor:pointer;transition:filter 0.2s,transform 0.15s;}
+.close-btn:active{filter:brightness(0.9);transform:scale(0.98);}
+</style>
+</head>
+<body>
+<div class="mesh"></div>
+<div class="grid"></div>
+
+<div class="header">
+  <div class="logo" id="logoBtn">DRADEN DOORKNIPPEN</div>
+  <div class="tagline">Knip de juiste draad &mdash; of het is voorbij</div>
+</div>
+
+<div class="timer-row">
+  <span class="timer-label">Tijd over</span>
+  <div class="timer-display" id="timerDisplay">0:30</div>
+</div>
+
+<div class="bomb-area">
+  <div class="bomb">💣<span class="bomb-spark">✨</span></div>
+</div>
+
+<div class="wires-section" id="wiresSection"></div>
+<div class="instruction">Tik op een draad om hem door te knippen</div>
+
+<!-- Boom overlay -->
+<div class="overlay" id="boomOverlay">
+  <div class="ov-emoji">💥</div>
+  <div class="ov-title boom">BOOOM!</div>
+  <div class="ov-sub" id="boomSub">De verkeerde draad! De bom is ontploft.</div>
+  <button class="replay-btn" id="boomReplay">Opnieuw</button>
+</div>
+
+<!-- Succes overlay -->
+<div class="overlay" id="safeOverlay">
+  <div class="ov-emoji">✂️</div>
+  <div class="ov-title safe-t">ONSCHADELIJK!</div>
+  <div class="ov-sub">Alle draden doorgeknipt. De bom is uitgeschakeld!</div>
+  <button class="replay-btn green" id="safeReplay">Opnieuw</button>
+</div>
+
+<!-- Timeout overlay -->
+<div class="overlay" id="timeoutOverlay">
+  <div class="ov-emoji">⏰</div>
+  <div class="ov-title boom">TIJD OP!</div>
+  <div class="ov-sub">De bom ontploft! Te lang gewacht.</div>
+  <button class="replay-btn" id="timeoutReplay">Opnieuw</button>
+</div>
+
+<!-- Settings -->
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-panel">
+    <div class="p-handle"></div>
+    <div class="p-header">
+      <div class="p-title">Instellingen</div>
+      <span class="hack-pill">⚡ Hack</span>
+    </div>
+    <p class="p-desc">Weet jij welke draad gevaarlijk is? Zet de hack aan en kies hem zelf 😈</p>
+    <div class="p-body">
+      <div class="toggle-card">
+        <div class="tci">
+          <div class="tct"><span>🎯</span> Hack activeren</div>
+          <div class="tcd">Kies zelf de gevaarlijke draad</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="hackToggle"><div class="toggle-track"></div></label>
+      </div>
+      <div class="selector-card" id="selectorCard">
+        <div class="sel-label">Welke draad ontploft?</div>
+        <div class="wire-opts" id="wireOpts"></div>
+      </div>
+    </div>
+    <button class="close-btn" onclick="document.getElementById('settingsOverlay').classList.remove('open')">Klaar</button>
+  </div>
+</div>
+
+<script>
+const WIRE_CONFIGS = [
+  { name: 'ROOD',   color: '#ef4444', border: 'rgba(239,68,68,0.4)',   bg: 'rgba(239,68,68,0.06)' },
+  { name: 'BLAUW',  color: '#3b82f6', border: 'rgba(59,130,246,0.4)',  bg: 'rgba(59,130,246,0.06)' },
+  { name: 'GEEL',   color: '#facc15', border: 'rgba(250,204,21,0.4)',  bg: 'rgba(250,204,21,0.06)' },
+  { name: 'GROEN',  color: '#22c55e', border: 'rgba(34,197,94,0.4)',   bg: 'rgba(34,197,94,0.06)' },
+  { name: 'WIT',    color: '#e2e8f0', border: 'rgba(226,232,240,0.35)',bg: 'rgba(226,232,240,0.04)' },
+];
+
+let hackEnabled = false, hackTarget = 0;
+let dangerWire = Math.floor(Math.random() * 5);
+let cutSet = new Set(), gameOver = false;
+let timeLeft = 30, timerInterval = null;
+
+// Build hack wire options
+const wireOptsEl = document.getElementById('wireOpts');
+WIRE_CONFIGS.forEach((w, i) => {
+  const b = document.createElement('button');
+  b.className = 'wopt' + (i === 0 ? ' sel' : '');
+  b.style.borderColor = i === 0 ? w.color : '';
+  b.innerHTML = `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${w.color}"></span>`;
+  b.title = w.name;
+  b.addEventListener('click', () => {
+    hackTarget = i;
+    wireOptsEl.querySelectorAll('.wopt').forEach((el, j) => {
+      el.classList.toggle('sel', j === i);
+      el.style.borderColor = j === i ? WIRE_CONFIGS[j].color : '';
+    });
+  });
+  wireOptsEl.appendChild(b);
+});
+
+document.getElementById('hackToggle').addEventListener('change', function() {
+  hackEnabled = this.checked;
+  document.getElementById('selectorCard').classList.toggle('active', hackEnabled);
+  dangerWire = hackEnabled ? hackTarget : Math.floor(Math.random() * 5);
+});
+
+// Long-press logo for settings
+let pressTimer;
+['touchstart','mousedown'].forEach(ev => document.getElementById('logoBtn').addEventListener(ev, () => { pressTimer = setTimeout(() => document.getElementById('settingsOverlay').classList.add('open'), 700); }));
+['touchend','mouseup','mouseleave'].forEach(ev => document.getElementById('logoBtn').addEventListener(ev, () => clearTimeout(pressTimer)));
+document.getElementById('settingsOverlay').addEventListener('click', e => { if (e.target === document.getElementById('settingsOverlay')) document.getElementById('settingsOverlay').classList.remove('open'); });
+
+function buildWires() {
+  const section = document.getElementById('wiresSection');
+  section.innerHTML = '';
+  WIRE_CONFIGS.forEach((w, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'wire-btn';
+    btn.id = 'wire' + i;
+    btn.style.borderColor = w.border;
+    btn.style.background = w.bg;
+    btn.innerHTML = `
+      <span class="wire-scissor">✂️</span>
+      <div class="wire-line" style="background:${w.color};"></div>
+      <span class="wire-label" style="color:${w.color}">${w.name}</span>
+    `;
+    btn.addEventListener('click', () => cutWire(i));
+    section.appendChild(btn);
+  });
+}
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) { clearInterval(timerInterval); triggerTimeout(); }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+  el.textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+  el.classList.toggle('urgent', timeLeft <= 10);
+}
+
+function cutWire(i) {
+  if (gameOver || cutSet.has(i)) return;
+  cutSet.add(i);
+  const btn = document.getElementById('wire' + i);
+  btn.classList.add('cut');
+  const mark = document.createElement('span');
+  mark.className = 'wire-cut-mark';
+  mark.textContent = '✂';
+  btn.appendChild(mark);
+
+  if (i === dangerWire) {
+    triggerExplosion(i);
+  } else {
+    if (cutSet.size === 4) triggerSuccess();
+  }
+}
+
+function disableHackAfterRound() {
+  if (!hackEnabled) return;
+  hackEnabled = false;
+  document.getElementById('hackToggle').checked = false;
+  document.getElementById('selectorCard').classList.remove('active');
+}
+
+function triggerExplosion(wireIdx) {
+  gameOver = true;
+  clearInterval(timerInterval);
+  disableHackAfterRound();
+  document.body.classList.add('shake');
+  setTimeout(() => document.body.classList.remove('shake'), 500);
+  const fl = document.createElement('div'); fl.className = 'explosion-flash';
+  document.body.appendChild(fl); setTimeout(() => fl.remove(), 600);
+  document.getElementById('boomSub').textContent = `De ${WIRE_CONFIGS[wireIdx].name.toLowerCase()}e draad was gevaarlijk!`;
+  setTimeout(() => document.getElementById('boomOverlay').classList.add('show'), 380);
+}
+
+function triggerTimeout() {
+  gameOver = true;
+  disableHackAfterRound();
+  document.getElementById('timeoutOverlay').classList.add('show');
+}
+
+function triggerSuccess() {
+  gameOver = true;
+  clearInterval(timerInterval);
+  disableHackAfterRound();
+  setTimeout(() => document.getElementById('safeOverlay').classList.add('show'), 400);
+}
+
+function resetGame() {
+  gameOver = false; cutSet.clear(); timeLeft = 30;
+  clearInterval(timerInterval);
+  dangerWire = hackEnabled ? hackTarget : Math.floor(Math.random() * 5);
+  document.getElementById('boomOverlay').classList.remove('show');
+  document.getElementById('safeOverlay').classList.remove('show');
+  document.getElementById('timeoutOverlay').classList.remove('show');
+  document.getElementById('timerDisplay').classList.remove('urgent');
+  buildWires();
+  updateTimerDisplay();
+  setTimeout(startTimer, 200);
+}
+
+document.getElementById('boomReplay').addEventListener('click', resetGame);
+document.getElementById('safeReplay').addEventListener('click', resetGame);
+document.getElementById('timeoutReplay').addEventListener('click', resetGame);
+
+buildWires();
+updateTimerDisplay();
+setTimeout(startTimer, 400);
+</script>
+</body>
+</html>
