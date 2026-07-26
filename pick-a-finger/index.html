@@ -430,7 +430,7 @@ body {
           <div class="toggle-card-desc">Kies zelf de winnende vinger</div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="hackToggle">
+          <input type="checkbox" id="hackToggle" autocomplete="off">
           <div class="toggle-track"></div>
         </label>
       </div>
@@ -477,6 +477,16 @@ hackToggle.addEventListener('change', () => {
   hackEnabled = hackToggle.checked;
   selectorCard.classList.toggle('active', hackEnabled);
 });
+
+// Sommige browsers onthouden de checkbox-status bij herladen of terugnavigeren (bfcache/autofill).
+// Forceer de hack altijd uit bij het openen/tonen van de pagina.
+function forceHackOff() {
+  hackEnabled = false;
+  hackToggle.checked = false;
+  selectorCard.classList.remove('active');
+}
+forceHackOff();
+window.addEventListener('pageshow', forceHackOff);
 
 // ── Settings ──
 const openSettings  = () => settingsOverlay.classList.add('open');

@@ -209,7 +209,7 @@ body {
           <div class="tct"><span>🎯</span> Hack activeren</div>
           <div class="tcd">Kies zelf de uitkomst</div>
         </div>
-        <label class="toggle"><input type="checkbox" id="hackToggle"><div class="toggle-track"></div></label>
+        <label class="toggle"><input type="checkbox" id="hackToggle" autocomplete="off"><div class="toggle-track"></div></label>
       </div>
       <div class="selector-card" id="selectorCard">
         <div class="sel-label">Welke kant wint?</div>
@@ -242,6 +242,16 @@ document.getElementById('hackToggle').addEventListener('change', function() {
   hackEnabled = this.checked;
   document.getElementById('selectorCard').classList.toggle('active', hackEnabled);
 });
+
+// Sommige browsers onthouden de checkbox-status bij herladen of terugnavigeren (bfcache/autofill).
+// Forceer de hack altijd uit bij het openen/tonen van de pagina.
+function forceHackOff() {
+  hackEnabled = false;
+  document.getElementById('hackToggle').checked = false;
+  document.getElementById('selectorCard').classList.remove('active');
+}
+forceHackOff();
+window.addEventListener('pageshow', forceHackOff);
 function selectHack(r) {
   hackResult = r;
   document.querySelectorAll('.ropt').forEach(b => b.classList.toggle('sel', b.dataset.r === r));

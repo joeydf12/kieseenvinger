@@ -394,7 +394,7 @@ body.shake { animation: shake 0.45s ease-out; }
           <div class="tcd">Kies zelf het gevaarlijke tandje</div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="hackToggle">
+          <input type="checkbox" id="hackToggle" autocomplete="off">
           <div class="toggle-track"></div>
         </label>
       </div>
@@ -437,6 +437,17 @@ document.getElementById('hackToggle').addEventListener('change', function() {
   document.getElementById('selectorCard').classList.toggle('active', hackEnabled);
   dangerIdx = hackEnabled ? hackTarget : Math.floor(Math.random() * TOTAL);
 });
+
+// Sommige browsers onthouden de checkbox-status bij herladen of terugnavigeren (bfcache/autofill).
+// Forceer de hack altijd uit bij het openen/tonen van de pagina.
+function forceHackOff() {
+  hackEnabled = false;
+  document.getElementById('hackToggle').checked = false;
+  document.getElementById('selectorCard').classList.remove('active');
+  dangerIdx = Math.floor(Math.random() * TOTAL);
+}
+forceHackOff();
+window.addEventListener('pageshow', forceHackOff);
 
 // Build dots
 function buildDots() {

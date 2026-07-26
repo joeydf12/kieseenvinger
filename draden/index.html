@@ -258,7 +258,7 @@ body.shake { animation:shake 0.45s ease-out; }
           <div class="tct"><span>🎯</span> Hack activeren</div>
           <div class="tcd">Kies zelf de gevaarlijke draad</div>
         </div>
-        <label class="toggle"><input type="checkbox" id="hackToggle"><div class="toggle-track"></div></label>
+        <label class="toggle"><input type="checkbox" id="hackToggle" autocomplete="off"><div class="toggle-track"></div></label>
       </div>
       <div class="selector-card" id="selectorCard">
         <div class="sel-label">Welke draad ontploft?</div>
@@ -306,6 +306,17 @@ document.getElementById('hackToggle').addEventListener('change', function() {
   document.getElementById('selectorCard').classList.toggle('active', hackEnabled);
   dangerWire = hackEnabled ? hackTarget : Math.floor(Math.random() * 5);
 });
+
+// Sommige browsers onthouden de checkbox-status bij herladen of terugnavigeren (bfcache/autofill).
+// Forceer de hack altijd uit bij het openen/tonen van de pagina.
+function forceHackOff() {
+  hackEnabled = false;
+  document.getElementById('hackToggle').checked = false;
+  document.getElementById('selectorCard').classList.remove('active');
+  dangerWire = Math.floor(Math.random() * 5);
+}
+forceHackOff();
+window.addEventListener('pageshow', forceHackOff);
 
 // Long-press logo for settings
 let pressTimer;
